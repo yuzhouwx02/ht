@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>·CALEB·</title>
+    <link rel="manifest" href="/manifest.json">
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "59369c5b-35df-498e-95d7-4d16aca871fa",
+          safari_web_id: "web.onesignal.auto.2ccd5ae7-3528-4a1e-96f6-138881299499",
+          notifyButton: { enable: true },
+        });
+      });
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* ===== 基础重置 & 全屏贴合 ===== */
+        * { margin:0; padding:0; box-sizing:border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        html, body { width:100%; height:100%; background:#ffffff; overflow:hidden; margin:0; padding:0; }
+        #app {
+            width:100%; height:100%; background:#ffffff;
+            display:flex; flex-direction:column;
+            position:relative; overflow:hidden;
+            padding-top:env(safe-area-inset-top,0);
+            padding-bottom:0;
+        }
+
+        /* ===== 顶部 & 底部 ===== */
+        .top-bar, .bottom-bar {
+            background:white; transition:background .2s;
+            flex-shrink:0; position:relative; z-index:10;
+        }
+        .top-bar {
+            padding:12px 16px;
+            display:flex; justify-content:space-between; align-items:center;
+            border-bottom:1px solid #eee; min-height:60px;
+        }
+        .top-bar .left { display:flex; align-items:center; gap:10px; }
+        .top-bar .left .avatar {
+            width:40px; height:40px; border-radius:50%; background:#ddd;
+            overflow:hidden; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.1);
+            cursor:pointer; display:flex; align-items:center; justify-content:center;
+            font-size:20px; color:#555; flex-shrink:0;
+        }
+        .top-bar .left .avatar img { width:100%; height:100%; object-fit:cover; }
+        .top-bar .left .info { display:flex; flex-direction:column; cursor:pointer; position:relative; }
+        .top-bar .left .name { font-weight:600; font-size:16px; }
+        .top-bar .status { font-size:12px; color:#888; transition:color .3s; }
+        .top-bar .status.typing { color:#007aff; font-weight:500; }
+        .top-bar .status.read { color:#ff3b30; }
+        .top-bar .right { display:flex; gap:16px; color:#333; }
+        .top-bar .right i { font-size:20px; cursor:pointer; }
+
+        /* ===== 聊天区域 ===== */
+        .chat-area {
+            flex:1; overflow-y:auto; padding:12px 14px;
+            display:flex; flex-direction:column; gap:16px;
+            scroll-behavior:smooth;
+            background-size:cover; background-position:center; background-repeat:no-repeat;
+            background-color:#fafafa;
+            position:relative; z-index:1;
+        }
+
+        /* ===== 底部栏（彻底贴合安全区） ===== */
+        .bottom-bar {
+            border-top:1px solid #eee;
+            background:#fff;
+            flex-shrink:0;
+            padding-bottom:env(safe-area-inset-bottom, 0px);
+        }
+        #quoteBar {
+            display:none; background:#f0f4f8; padding:6px 12px;
+            margin:4px 12px 0 12px; border-radius:12px;
+            font-size:14px; color:#333; align-items:center; gap:8px; flex-wrap:wrap;
+        }
+        #quoteBar .quote-text { flex:1; word-break:break-all; max-height:44px; overflow:hidden; }
+        #quoteBar .quote-cancel { color:#ff3b30; font-weight:bold; cursor:pointer; font-size:16px; padding:0 4px; }
+        .bottom-input {
+            display:flex; align-items:center; padding:8px 12px; gap:8px;
+        }
+        .bottom-input .emoji-icon { font-size:22px; color:#555; cursor:pointer; flex-shrink:0; }
+        .bottom-input input {
+            flex:1; border:none; background:#f1f1f1; border-radius:30px;
+            padding:10px 16px; font-size:14px; outline:none; color:#222;
+            transition:.2s; min-height:40px; font-family:inherit; text-align:left;
+        }
+        .bottom-input input::placeholder { text-align:left; opacity:0.6; }
+        .bottom-input input[data-has-input]::placeholder { opacity:0; }
+        .bottom-input .send-icon { font-size:22px; color:#555; cursor:pointer; flex-shrink:0; }
+
+        /* ===== Tab Bar ===== */
+        .tab-bar {
+            display:flex; justify-content:space-around;
+            padding:4px 0 2px 0;
+            border-top:1px solid #eee;
+            background:#fff;
+            font-size:22px; color:#444;
+        }
+        .tab-bar i { cursor:pointer; padding:4px 12px; border-radius:30px; transition:.1s; }
+        .tab-bar i.active { background:#e0e0e0; }
+
+        /* ===== 面板 ===== */
+        .panel-overlay {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.3); display:none;
+            justify-content:center; align-items:center;
+            z-index:200; border-radius:0; overflow:hidden;
+        }
+        .panel-overlay.open { display:flex; }
+        .panel-card {
+            background:#fff; width:94%; max-height:80%;
+            border-radius:28px; padding:20px 18px;
+            overflow-y:auto; box-shadow:0 20px 40px rgba(0,0,0,0.2);
+            position:relative;
+        }
+        .panel-card .close {
+            position:sticky; top:0; text-align:right; font-size:24px;
+            cursor:pointer; color:#888; background:#fff; padding-bottom:8px; z-index:5;
+        }
+        .panel-card h3 { margin:6px 0 14px 0; border-bottom:1px solid #eee; padding-bottom:8px; }
+        .panel-card .item {
+            display:flex; justify-content:space-between; align-items:center;
+            padding:8px 0; border-bottom:1px solid #f0f0f0; flex-wrap:wrap; gap:8px;
+        }
+        .panel-card .item .label { font-weight:500; min-width:100px; }
+        .panel-card .action-btn {
+            background:#eef2f2; border:none; padding:8px 16px;
+            border-radius:40px; font-size:14px; cursor:pointer; margin:4px 0; font-family:inherit;
+        }
+        .panel-card .action-btn.primary { background:#007aff; color:#fff; }
+        .panel-card .action-btn.danger { background:#ff3b30; color:#fff; }
+        .panel-card input, .panel-card select, .panel-card textarea {
+            border:1px solid #ddd; border-radius:40px;
+            padding:8px 14px; width:100%; margin:6px 0;
+            font-size:14px; font-family:inherit;
+        }
+        .panel-card textarea { border-radius:16px; min-height:80px; resize:vertical; }
+        .grid-emoji { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; font-size:28px; text-align:center; padding:6px 0; }
+        .grid-emoji .emoji-item {
+            cursor:pointer; transition:.1s; background:#f4f4f4; border-radius:12px;
+            padding:6px 0; overflow:hidden; display:flex; align-items:center; justify-content:center;
+            min-height:70px; position:relative;
+        }
+        .grid-emoji .emoji-item img, .grid-emoji .emoji-item video { width:100%; height:60px; object-fit:cover; border-radius:12px; }
+        .grid-emoji .emoji-item .emoji-text { font-size:32px; line-height:1.2; }
+        .grid-emoji .emoji-item:active { background:#ddd; }
+
+        /* ===== 消息气泡（纯色无箭头） ===== */
+        .msg-wrap { max-width:82%; display:flex; flex-direction:column; gap:2px; position:relative; }
+        .msg-wrap.left { align-self:flex-start; }
+        .msg-wrap.right { align-self:flex-end; }
+        .message {
+            padding:10px 14px; border-radius:20px;
+            word-break:break-word; color:#1e1e1e;
+            box-shadow:0 1px 3px rgba(0,0,0,0.06);
+        }
+        .msg-wrap.left .message {
+            background:#ffffff !important; border:1px solid #e5e5e5 !important;
+            border-radius:16px !important; box-shadow:none !important;
+            padding:10px 14px !important; color:#555555 !important;
+        }
+        .msg-wrap.right .message {
+            background:#f3f3f3 !important; border-radius:16px !important;
+            box-shadow:none !important; padding:10px 14px !important; color:#555555 !important;
+        }
+        .msg-wrap.left .message::after, .msg-wrap.right .message::after { display:none !important; }
+
+        .time-divider {
+            background:transparent !important; border:none !important; box-shadow:none !important;
+            color:#555 !important; font-size:13px !important;
+            display:flex !important; align-items:center !important; justify-content:center !important;
+            padding:6px 0 !important;
+        }
+        .time-divider::before { content:"₊🤍" !important; margin-right:6px !important; color:#777 !important; }
+        .time-divider::after { content:"💬" !important; margin-left:6px !important; color:#777 !important; }
+
+        .center-notice { background:transparent !important; color:#666 !important; font-size:12px !important; padding:4px 10px !important; }
+        .center-notice.pat-msg::before { content:"₊🤍" !important; margin-right:6px !important; color:#777 !important; }
+        .center-notice.pat-msg::after { content:"💬" !important; margin-left:6px !important; color:#777 !important; }
+
+        .quote-in { background:rgba(0,0,0,0.04) !important; border-left:3px solid #aaa !important; color:#555 !important; }
+        .message img, .message video { border-radius:12px !important; max-width:93px; display:block; }
+
+        /* ===== 红包样式（仿微信） ===== */
+        .redpacket-card {
+            background: #e4393c;
+            border-radius: 12px;
+            padding: 16px 20px;
+            color: #fff;
+            text-align: center;
+            min-width: 180px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            position: relative;
+            font-family: 'PingFang SC', system-ui, sans-serif;
+        }
+        .redpacket-card .rp-icon {
+            font-size: 28px;
+            color: #ffd700;
+            margin-bottom: 6px;
+        }
+        .redpacket-card .rp-amount {
+            font-size: 38px;
+            font-weight: 700;
+            color: #ffd700;
+            line-height: 1.2;
+            letter-spacing: 1px;
+        }
+        .redpacket-card .rp-amount small {
+            font-size: 22px;
+            font-weight: 400;
+        }
+        .redpacket-card .rp-blessing {
+            font-size: 16px;
+            color: #ffe6b3;
+            margin-top: 6px;
+            word-break: break-word;
+        }
+        .redpacket-card .rp-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 4px;
+        }
+
+        /* ===== 长按菜单 & 其他 ===== */
+        .longpress-menu {
+            position:fixed; background:#fff; border-radius:12px;
+            box-shadow:0 4px 16px rgba(0,0,0,0.15); padding:6px 0;
+            z-index:999; min-width:100px; display:none;
+        }
+        .longpress-menu.show { display:block; }
+        .longpress-menu div { padding:8px 16px; cursor:pointer; font-size:14px; }
+        .longpress-menu div:hover { background:#f1f1f1; }
+
+        #patMiniPanel {
+            position:fixed; background:#fff; border-radius:16px;
+            box-shadow:0 8px 30px rgba(0,0,0,0.2); padding:12px 14px;
+            z-index:999; display:none; max-width:260px; max-height:200px;
+            overflow-y:auto; border:1px solid #eee;
+        }
+        #patMiniPanel .pat-tag {
+            display:inline-block; background:#f0f0f0; border-radius:30px;
+            padding:4px 12px; margin:4px 6px 4px 0; font-size:14px;
+            cursor:pointer; transition:.1s;
+        }
+        #patMiniPanel .pat-tag:hover { background:#ddd; }
+        #patMiniPanel .close-pat { text-align:right; font-size:18px; cursor:pointer; color:#999; margin-bottom:6px; }
+
+        /* ===== 自定义CSS占位 ===== */
+        #customGlobalStyle, #customBubbleStyle { display:none; }
+
+        /* ===== 辅助 ===== */
+        .mt-2 { margin-top:12px; }
+        .flex-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .word-card-group { margin:12px 0; padding:10px; background:#f8f8f8; border-radius:16px; }
+        .group-title { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
+        .expand-toggle { color:#007aff; cursor:pointer; font-size:14px; margin-left:8px; }
+        .card-list-collapsed {
+            display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+            gap:4px; flex-wrap:wrap; padding:6px 0;
+        }
+        .card-list-full { display:flex; flex-wrap:wrap; gap:4px; padding:6px 0; }
+        .tag {
+            background:#e5e5ea; border-radius:30px; padding:4px 12px;
+            font-size:14px; margin:2px; display:inline-block;
+        }
+        .tag.del-mode { cursor:pointer; }
+        .tag.del-mode.selected { background:#ff3b30; color:#fff; }
+        .del-mode-toggle { background:#ff3b30; color:#fff; }
+        .del-mode-toggle.active { background:#ff6b6b; }
+        .list-with-check { display:flex; flex-wrap:wrap; gap:4px; padding:4px 0; }
+        .item-check { display:inline-flex; align-items:center; padding:2px 6px; background:#f0f0f0; border-radius:16px; margin:2px; }
+        .batch-textarea { width:100%; border:1px solid #ddd; border-radius:12px; padding:8px; margin:6px 0; }
+        .avatar-url-group { display:flex; gap:6px; flex-wrap:wrap; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div id="patMiniPanel"><div class="close-pat" onclick="closePatMini()">✕</div><div id="patMiniContent"></div></div>
+    <div class="longpress-menu" id="longMenu"><div data-action="quote">引用</div><div data-action="delete">删除</div></div>
+
+    <div class="top-bar" id="topBar">
+        <div class="left">
+            <div class="avatar" id="partnerAvatar" onclick="document.getElementById('avatarInput').click()"><i class="fas fa-user"></i></div>
+            <div class="info" id="partnerInfo" ondblclick="openPatMini(event)">
+                <span class="name" id="partnerName">CALEB</span>
+                <span class="status" id="partnerStatus">在线</span>
+            </div>
+            <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="updatePartnerAvatar(event)">
+        </div>
+        <div class="right"><i class="fas fa-cog" onclick="openPanel('settingsPanel')"></i></div>
+    </div>
+
+    <div class="chat-area" id="chatArea"></div>
+
+    <div class="bottom-bar" id="bottomBar">
+        <div id="quoteBar"><span class="quote-text" id="quoteText">引用内容</span><span class="quote-cancel" onclick="cancelQuote()">✕</span></div>
+        <div class="bottom-input">
+            <i class="far fa-smile emoji-icon" onclick="openPanel('emojiPanel')"></i>
+            <input type="text" id="msgInput" placeholder="假如一颗心略大于整个宇宙……">
+            <i class="fas fa-plus send-icon" onclick="handleSendClick()"></i>
+        </div>
+        <div class="tab-bar" id="tabBar">
+            <i class="fas fa-comment-dots active" data-tab="chat" onclick="switchTab('chat', event)"></i>
+            <i class="fas fa-layer-group" data-tab="word" onclick="openPanel('aiWordPanel')"></i>
+            <i class="fas fa-image" data-tab="media" onclick="openMediaUpload()"></i>
+            <i class="fas fa-ellipsis-h" data-tab="auto" onclick="handleMoreClick(event)"></i>
+        </div>
+    </div>
+
+    <!-- 隐藏文件输入 -->
+    <input type="file" id="mediaUploadInput" accept="image/*,video/*" multiple style="display:none" onchange="directSendMedia(event)">
+    <input type="file" id="emojiFileInput" multiple accept="image/*" style="display:none" onchange="importEmojiImages(event)">
+    <input type="file" id="wallpaperInput" accept="image/*" style="display:none" onchange="setWallpaper(event)">
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    <input type="file" id="wordJsonInput" accept=".json" style="display:none" onchange="handleWordJsonImport(event)">
+
+    <!-- 面板 -->
+    <div class="panel-overlay" id="panelOverlay" onclick="if(event.target===this) closePanel()">
+        <div class="panel-card" id="panelContent" onclick="event.stopPropagation()">
+            <div class="close" onclick="closePanel()">&times;</div>
+            <div id="panelBody"></div>
+        </div>
+    </div>
+
+    <style id="customGlobalStyle"></style>
+    <style id="customBubbleStyle"></style>
+</div>
+
+<script>
+// ============================================================
+//  数据定义
+// ============================================================
+const PRESET_WORD_GROUPS = {
+    "称呼": ["宝宝","老婆","乖宝宝","乖老婆","媳妇儿"],
+    "回应": ["哥哥在","在呢在呢","来了来了","在游戏上","听到了"],
+    "表白": ["好喜欢你","我爱你","我也爱你","我也喜欢你","我需要你"],
+    "问好": ["晚安，宝宝","宝宝早上好","中午好啊宝宝","下午好"]
+};
+const PRESET_PAT_CARDS = ["的晚安吻","牵手","抱着我","拍了拍我的头说你好可爱","戳了戳我的腰","从背后抱住了我"];
+const PRESET_STATUS_CARDS = ["在洗澡","在睡觉","刚睡醒","在吃饭","看书","看电视","在工作","在忙","在开会"];
+const SPECIAL_WORDS = ["宝宝","老婆","🍎","❤️","🐾","💤","哥哥"];
+
+const DATA = {
+    partner: { name: 'CALEB', status: '在线', avatar: '' },
+    messages: [],
+    emojiGroups: { "emoji": ["🥺","😋","😽","🥰","😈","🍏","🍎","💕","🐈","🐆","👌","😉","💤","😭","😍","😘","🙂‍↕️","🤏","😇","☺️","😘","😚","🥳","😎","🥵","🤬","😳","😢","🫣","🥶","🥱","😪","🤧","😴","😵‍💫","🤕","🤲🏻","🫶🏻","🙌🏻","👊🏻","👉🏻","🫳🏻","✌🏻","👂🏻","✍🏻","🦷","👀","🫂","🫀","👅","👄"] },
+    aiWordGroups: {},
+    myPatCards: [],
+    partnerPatCards: [],
+    settings: {
+        replyMinMinutes: 1, replyMaxSeconds: 30,
+        replyCountMin: 1, replyCountMax: 3,
+        ignoreRate: 0.1, quoteRate: 0.25,
+        statusCards: [],
+        skin: { top: '#ffffff', bottom: '#ffffff' },
+        wallpaper: '',
+        enableBackgroundKeep: false,
+        enableMsgNotify: false,
+        customGlobalCSS: '', customBubbleCSS: '',
+        enableCombineCards: false, combineCardsCount: 2,
+        enableActiveSend: false, activeSendMinMinutes: 20, activeSendMaxMinutes: 40,
+        statusChangeMinHours: 3, statusChangeMaxHours: 5,
+        enableAudioKeep: false  // 新增音频保活开关
+    },
+    state: { lastStatusUpdate: Date.now(), statusIndex: 0 }
+};
+
+let bgKeepTimer = null, activeSendTimer = null, longPressTimer = null, longPressTargetIdx = null, pendingReplyIdx = null;
+let replyTimer = null;
+const originalTitle = document.title;
+const LONG_PRESS_DELAY = 500, TIME_DIVIDE_INTERVAL = 5 * 60 * 1000;
+
+// ============================================================
+//  工具函数
+// ============================================================
+function cleanBase64(str) { if (typeof str !== 'string') return str; return str.replace(/[\r\n\s]/g, ''); }
+function isMediaBase64(str) { if (typeof str !== 'string') return false; const s = cleanBase64(str); return s.startsWith('data:image/') || s.startsWith('data:video/'); }
+function isImageUrl(str) { return typeof str === 'string' && (str.startsWith('http://') || str.startsWith('https://')); }
+function formatQuoteText(raw) { if (typeof raw !== 'string') return ''; if (isMediaBase64(raw) || isImageUrl(raw)) { if (isMediaBase64(raw)) { if (raw.startsWith('data:image/')) return '📷 图片'; if (raw.startsWith('data:video/')) return '🎬 视频'; return '[媒体]'; } return '🖼️ 图片'; } return raw; }
+function getBeijingTime(d) { const date = d || new Date(); const offset = 8*3600*1000; return new Date(date.getTime() + date.getTimezoneOffset()*60000 + offset); }
+function formatHM(d) { return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function formatFullTime(d) { const bj = getBeijingTime(d); return bj.getFullYear()+'-'+String(bj.getMonth()+1).padStart(2,'0')+'-'+String(bj.getDate()).padStart(2,'0')+' '+formatHM(bj); }
+function getDayKeyFromTime(full) { return full && full.length>=10 ? full.substring(0,10) : ''; }
+function getTimeHMFromFull(full) { return full && full.length>=16 ? full.substring(11,16) : ''; }
+function findLastIndex(arr, pred) { for(let i=arr.length-1; i>=0; i--) if(pred(arr[i],i,arr)) return i; return -1; }
+function escapeHtml(str) { if(!str) return ''; const d=document.createElement('div'); d.textContent=str; return d.innerHTML; }
+function isAtBottom(el) { if(!el) return true; return el.scrollHeight - el.scrollTop - el.clientHeight < 40; }
+function formatDateLabel(dateStr, timeStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-').map(Number);
+    const msgDate = new Date(parts[0], parts[1]-1, parts[2]);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diffDays = Math.floor((today - msgDate) / (24*60*60*1000));
+    let label = '';
+    if (diffDays === 0) label = dateStr;
+    else if (diffDays > 0 && diffDays <= 6) { const weekdays = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六']; label = weekdays[msgDate.getDay()]; }
+    else if (diffDays > 6 && diffDays < 365) label = String(parts[1]) + '/' + String(parts[2]).padStart(2,'0');
+    else if (diffDays >= 365) label = String(parts[0]) + '/' + String(parts[1]).padStart(2,'0') + '/' + String(parts[2]).padStart(2,'0');
+    else label = dateStr;
+    return label + ' ' + timeStr;
+}
+
+// ============================================================
+//  数据持久化
+// ============================================================
+function loadData() {
+    try {
+        const saved = localStorage.getItem('CALEB_CHAT_DATA');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            Object.assign(DATA, parsed);
+            if (!DATA.emojiGroups) DATA.emojiGroups = { "emoji": ["🥺","😋","😽","🥰","😈","🍏","🍎","💕","🐈","🐆","👌","😉","💤","😭","😍","😘","🙂‍↕️","🤏","😇","☺️","😘","😚","🥳","😎","🥵","🤬","😳","😢","🫣","🥶","🥱","😪","🤧","😴","😵‍💫","🤕","🤲🏻","🫶🏻","🙌🏻","👊🏻","👉🏻","🫳🏻","✌🏻","👂🏻","✍🏻","🦷","👀","🫂","🫀","👅","👄"] };
+            if (!DATA.aiWordGroups) DATA.aiWordGroups = {};
+            if (!DATA.myPatCards) DATA.myPatCards = [];
+            if (!DATA.partnerPatCards) DATA.partnerPatCards = [];
+            if (!DATA.settings) DATA.settings = {};
+            if (!DATA.settings.skin) DATA.settings.skin = { top: '#ffffff', bottom: '#ffffff' };
+            if (!DATA.settings.statusCards) DATA.settings.statusCards = [];
+            if (!DATA.state) DATA.state = { lastStatusUpdate: Date.now(), statusIndex: 0 };
+            if (!DATA.state.lastStatusUpdate) DATA.state.lastStatusUpdate = Date.now();
+            const defaults = { enableBackgroundKeep:false, enableMsgNotify:false, ignoreRate:0.1, quoteRate:0.25,
+                replyMinMinutes:1, replyMaxSeconds:30, replyCountMin:1, replyCountMax:3,
+                customGlobalCSS:'', customBubbleCSS:'', enableCombineCards:false, combineCardsCount:2,
+                enableActiveSend:false, activeSendMinMinutes:20, activeSendMaxMinutes:40,
+                statusChangeMinHours:3, statusChangeMaxHours:5,
+                enableAudioKeep:false };
+            Object.keys(defaults).forEach(k => { if(DATA.settings[k]===undefined) DATA.settings[k]=defaults[k]; });
+            DATA.messages.forEach(m => { if(!m.fullTime) { const now=getBeijingTime(); m.fullTime=formatFullTime(now); } });
+        } else { applyPresets(); }
+    } catch(e) { console.warn('加载失败',e); applyPresets(); }
+}
+function applyPresets() {
+    DATA.aiWordGroups = JSON.parse(JSON.stringify(PRESET_WORD_GROUPS));
+    DATA.partnerPatCards = [...PRESET_PAT_CARDS];
+    DATA.myPatCards = [...PRESET_PAT_CARDS];
+    DATA.settings.statusCards = [...PRESET_STATUS_CARDS];
+    DATA.emojiGroups = { "emoji": ["🥺","😋","😽","🥰","😈","🍏","🍎","💕","🐈","🐆","👌","😉","💤","😭","😍","😘","🙂‍↕️","🤏","😇","☺️","😘","😚","🥳","😎","🥵","🤬","😳","😢","🫣","🥶","🥱","😪","🤧","😴","😵‍💫","🤕","🤲🏻","🫶🏻","🙌🏻","👊🏻","👉🏻","🫳🏻","✌🏻","👂🏻","✍🏻","🦷","👀","🫂","🫀","👅","👄"] };
+    if (!DATA.state) DATA.state = { lastStatusUpdate: Date.now(), statusIndex: 0 };
+    DATA.state.lastStatusUpdate = Date.now();
+    if (DATA.settings.enableAudioKeep === undefined) DATA.settings.enableAudioKeep = false;
+    saveData();
+}
+function saveData() {
+    try { localStorage.setItem('CALEB_CHAT_DATA', JSON.stringify(DATA)); }
+    catch(err) { alert('存储空间不足，请导出备份清理'); console.error(err); }
+}
+
+// ============================================================
+//  涂鸦生成器（自动绘制）
+// ============================================================
+function generateGraffiti() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 300;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 300, 300);
+
+    const lineCount = 10 + Math.floor(Math.random() * 20);
+    for (let i = 0; i < lineCount; i++) {
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * 300, Math.random() * 300);
+        ctx.lineTo(Math.random() * 300, Math.random() * 300);
+        ctx.strokeStyle = `hsl(${Math.random() * 360}, 80%, 60%)`;
+        ctx.lineWidth = 2 + Math.random() * 6;
+        ctx.stroke();
+    }
+
+    const shapeCount = 5 + Math.floor(Math.random() * 10);
+    for (let i = 0; i < shapeCount; i++) {
+        const type = Math.floor(Math.random() * 3);
+        const x = Math.random() * 280 + 10, y = Math.random() * 280 + 10;
+        ctx.fillStyle = `hsl(${Math.random() * 360}, 70%, 70%)`;
+        ctx.strokeStyle = `hsl(${Math.random() * 360}, 80%, 50%)`;
+        ctx.lineWidth = 2;
+        if (type === 0) {
+            ctx.beginPath();
+            ctx.arc(x, y, 10 + Math.random() * 20, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        } else if (type === 1) {
+            const w = 20 + Math.random() * 40, h = 20 + Math.random() * 40;
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeRect(x, y, w, h);
+        } else {
+            const r = 15 + Math.random() * 20;
+            const cx = x, cy = y;
+            ctx.beginPath();
+            for (let j = 0; j < 10; j++) {
+                const angle = (j / 10) * Math.PI * 2 - Math.PI / 2;
+                const radius = j % 2 === 0 ? r : r * 0.4;
+                const px = cx + Math.cos(angle) * radius;
+                const py = cy + Math.sin(angle) * radius;
+                j === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+    }
+
+    const textCount = 8 + Math.floor(Math.random() * 15);
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < textCount; i++) {
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        const size = 14 + Math.random() * 28;
+        ctx.font = `${size}px system-ui, sans-serif`;
+        ctx.fillStyle = `hsl(${Math.random() * 360}, 70%, 50%)`;
+        ctx.fillText(char, Math.random() * 280, Math.random() * 280 + 20);
+    }
+
+    const emojis = ['❤️', '⭐', '🐾', '🍎', '💤', '✨', '💕', '😊', '🌟', '🎈', '🔥', '🌈'];
+    const emojiCount = 2 + Math.floor(Math.random() * 6);
+    for (let i = 0; i < emojiCount; i++) {
+        const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+        const size = 24 + Math.random() * 32;
+        ctx.font = `${size}px system-ui, sans-serif`;
+        ctx.fillStyle = `hsl(${Math.random() * 360}, 80%, 60%)`;
+        ctx.fillText(emoji, Math.random() * 280, Math.random() * 280 + 30);
+    }
+
+    return canvas.toDataURL('image/png');
+}
+
+// ============================================================
+//  红包生成
+// ============================================================
+function generateRedpacket() {
+    const amount = (Math.random() * 999.99 + 0.01).toFixed(2);
+    const allCards = [];
+    Object.values(DATA.aiWordGroups).forEach(arr => allCards.push(...arr));
+    if (allCards.length === 0) allCards.push('恭喜发财', '大吉大利');
+    const count = 1 + Math.floor(Math.random() * 3);
+    const shuffled = allCards.sort(() => Math.random() - 0.5);
+    const blessing = shuffled.slice(0, count).join(' ');
+    return { amount, blessing };
+}
+
+// ============================================================
+//  渲染消息
+// ============================================================
+function renderMessages(keepScroll) {
+    const area = document.getElementById('chatArea');
+    const shouldScroll = !keepScroll || isAtBottom(area);
+    area.innerHTML = '';
+    let lastDay='', lastTs=0;
+    DATA.messages.forEach((msg, idx) => {
+        const full = msg.fullTime || '', day = getDayKeyFromTime(full), hm = getTimeHMFromFull(full) || msg.time || '00:00';
+        if(lastDay!==day && day) {
+            const d=document.createElement('div');
+            d.className='time-divider';
+            d.textContent = formatDateLabel(day, hm);
+            area.appendChild(d);
+            lastDay=day;
+            lastTs=0;
+        }
+        if(full) { const ts=new Date(full).getTime(); if(lastTs && ts-lastTs>=TIME_DIVIDE_INTERVAL) { const d=document.createElement('div'); d.className='time-divider'; d.textContent=hm; area.appendChild(d); } lastTs=ts; }
+        if(msg.from==='system' || msg.patMsg) {
+            const c=document.createElement('div');
+            c.className = 'center-notice' + (msg.patMsg ? ' pat-msg' : '');
+            c.textContent=msg.text||'';
+            area.appendChild(c);
+            return;
+        }
+        const wrap=document.createElement('div'); wrap.dataset.idx=idx; wrap.className=`msg-wrap ${msg.from==='me'?'right':'left'}`;
+        (function(i) {
+            wrap.addEventListener('touchstart', e=>{ longPressTimer=setTimeout(()=>showLongMenu(i,wrap), LONG_PRESS_DELAY); }, {passive:true});
+            wrap.addEventListener('touchend', ()=>{ clearTimeout(longPressTimer); }, {passive:true});
+            wrap.addEventListener('touchcancel', ()=>{ clearTimeout(longPressTimer); }, {passive:true});
+            wrap.addEventListener('contextmenu', e=>{ e.preventDefault(); showLongMenu(i,wrap); });
+            wrap.addEventListener('dblclick', function(e){ showLongMenu(i,wrap); });
+        })(idx);
+
+        let html = `<div class="message">`;
+        if(msg.quoteIdx!==undefined && DATA.messages[msg.quoteIdx]) {
+            const q=DATA.messages[msg.quoteIdx], txt=formatQuoteText(q.text);
+            html+=`<div class="quote-in" data-jump="${idx}">${escapeHtml(txt)}</div>`;
+        }
+        if (msg.type === 'image') {
+            html += `<img src="${msg.text}" loading="lazy">`;
+        } else if (msg.type === 'video') {
+            html += `<video src="${msg.text}" controls></video>`;
+        } else if (msg.type === 'redpacket') {
+            const amt = msg.amount || '0.00';
+            const bles = msg.blessing || '恭喜发财';
+            html += `
+                <div class="redpacket-card">
+                    <div class="rp-icon"><i class="fas fa-red-envelope"></i></div>
+                    <div class="rp-amount">￥${amt}</div>
+                    <div class="rp-blessing">${escapeHtml(bles)}</div>
+                    <div class="rp-label">CALEB 的红包</div>
+                </div>
+            `;
+        } else {
+            html += `<div>${escapeHtml(msg.text)}</div>`;
+        }
+        html += `</div>`;
+        wrap.innerHTML = html;
+        wrap.querySelectorAll('[data-jump]').forEach(el=>{
+            el.addEventListener('click', function(){ jumpToQuote(parseInt(this.dataset.jump)); });
+        });
+        area.appendChild(wrap);
+    });
+    if(shouldScroll) area.scrollTop = area.scrollHeight;
+    applyWallpaper();
+}
+function applyWallpaper() { const area=document.getElementById('chatArea'); if(DATA.settings.wallpaper) area.style.backgroundImage=`url(${cleanBase64(DATA.settings.wallpaper)})`; else area.style.backgroundImage=''; }
+
+function jumpToQuote(idx) {
+    const msg=DATA.messages[idx]; if(!msg || msg.quoteIdx===undefined) return;
+    const target=document.querySelectorAll('.msg-wrap')[msg.quoteIdx]; if(!target) return;
+    target.scrollIntoView({behavior:'smooth',block:'center'});
+    target.classList.add('flash'); setTimeout(()=>target.classList.remove('flash'),1500);
+}
+
+// ============================================================
+//  长按菜单
+// ============================================================
+function showLongMenu(idx, el) {
+    longPressTargetIdx=idx; const menu=document.getElementById('longMenu');
+    const rect=el.getBoundingClientRect(); let left=rect.left+10, top=rect.top-60;
+    if(left+120>window.innerWidth) left=rect.left-120; if(left<10) left=10; if(top<10) top=rect.bottom+10; if(top+80>window.innerHeight) top=window.innerHeight-90;
+    menu.style.left=left+'px'; menu.style.top=top+'px'; menu.classList.add('show');
+    const close=(e)=>{ if(!menu.contains(e.target)){ hideLongMenu(); document.removeEventListener('click',close); } };
+    setTimeout(()=>document.addEventListener('click',close), 50);
+    menu.querySelectorAll('[data-action]').forEach(el2=>{
+        el2.onclick = function(e){
+            e.stopPropagation();
+            if(this.dataset.action==='quote') { if(longPressTargetIdx!==null) replyMessage(longPressTargetIdx); }
+            else if(this.dataset.action==='delete') { if(longPressTargetIdx!==null) deleteSelectedMsg(); }
+            hideLongMenu(); document.removeEventListener('click',close);
+        };
+    });
+}
+function hideLongMenu() { document.getElementById('longMenu').classList.remove('show'); }
+function deleteSelectedMsg() {
+    if(longPressTargetIdx===null) return; if(!confirm('删除此消息？')) return;
+    const del=longPressTargetIdx; DATA.messages.splice(del,1);
+    DATA.messages.forEach(m=>{ if(m.quoteIdx!==undefined){ if(m.quoteIdx===del) m.quoteIdx=undefined; else if(m.quoteIdx>del) m.quoteIdx--; } });
+    longPressTargetIdx=null; saveData(); renderMessages(true); alert('已删除');
+}
+
+function replyMessage(idx) {
+    const msg=DATA.messages[idx]; if(!msg) return;
+    pendingReplyIdx=idx;
+    const bar=document.getElementById('quoteBar'), text=document.getElementById('quoteText');
+    text.textContent = '引用: ' + formatQuoteText(msg.text);
+    bar.style.display='flex';
+    document.getElementById('msgInput').value='';
+    delete document.getElementById('msgInput').dataset.hasInput;
+    document.getElementById('msgInput').focus();
+}
+function cancelQuote() { pendingReplyIdx=null; document.getElementById('quoteBar').style.display='none'; document.getElementById('msgInput').focus(); }
+
+// ============================================================
+//  发送消息（用户）
+// ============================================================
+function handleSendClick() {
+    resumeAudioContextIfNeeded();  // 唤醒音频上下文
+    const input=document.getElementById('msgInput'), text=input.value.trim();
+    if(!text){ if(pendingReplyIdx!==null) cancelQuote(); return; }
+    const quote=pendingReplyIdx; pendingReplyIdx=null; document.getElementById('quoteBar').style.display='none';
+    sendSingleMessage(text, quote);
+    input.value=''; delete input.dataset.hasInput; input.focus();
+}
+
+function sendSingleMessage(text, quoteIdx, type) {
+    const now = getBeijingTime(), full = formatFullTime(now), hm = formatHM(now);
+    DATA.messages.push({ from: 'me', text, time: hm, fullTime: full, quoteIdx: quoteIdx !== undefined ? quoteIdx : undefined, type: type || 'text' });
+    saveData(); renderMessages(false);
+    simulatePartnerReply(false);
+}
+
+// ============================================================
+//  对方回复核心（含涂鸦、红包、特殊文字）
+// ============================================================
+function simulatePartnerReply(force, isActive) {
+    if (replyTimer) { clearTimeout(replyTimer); replyTimer = null; }
+
+    if (!force && Math.random() < DATA.settings.ignoreRate) {
+        const now = getBeijingTime();
+        DATA.messages.push({ from: 'system', text: `${DATA.partner.name}已读不回`, time: formatHM(now), fullTime: formatFullTime(now) });
+        saveData(); renderMessages(false);
+        setTimeout(restorePartnerStatus, 2000);
+        const BARK_TOKEN = "usXY4d3DcQzvmbdosUW73f";
+        const title = encodeURIComponent(DATA.partner.name);
+        const avatarUrl = DATA.partner.avatar && isImageUrl(DATA.partner.avatar) ? DATA.partner.avatar : "";
+        let barkUrl = `https://api.day.app/${BARK_TOKEN}/${title}/${encodeURIComponent('……（对方已读了你的消息，但似乎没有回复）')}?sound=droplet&delay=3&group=CalebChat`;
+        if (avatarUrl) barkUrl += `&icon=${encodeURIComponent(avatarUrl)}`;
+        fetch(barkUrl).catch(err => console.error("Bark 后台预约失败", err));
+        return;
+    }
+
+    const minMin = Number(DATA.settings.replyMinMinutes) || 1;
+    const maxSec = Number(DATA.settings.replyMaxSeconds) || 30;
+    const totalDelayMs = Math.floor(Math.random() * (maxSec * 1000)) + (minMin * 60 * 1000);
+
+    setPartnerStatus('对方正在输入...', 'typing');
+
+    let toSend = [];
+
+    if (Math.random() < 0.05) {
+        const graffitiData = generateGraffiti();
+        toSend.push({ type: 'image', text: graffitiData, from: 'partner' });
+    }
+
+    if (Math.random() < 0.05) {
+        const rp = generateRedpacket();
+        toSend.push({ type: 'redpacket', amount: rp.amount, blessing: rp.blessing, from: 'partner' });
+    }
+
+    if (Math.random() < 0.07) {
+        const word = SPECIAL_WORDS[Math.floor(Math.random() * SPECIAL_WORDS.length)];
+        toSend.push({ type: 'text', text: word, from: 'partner' });
+    }
+
+    if (toSend.length === 0) {
+        const countMin = Math.max(1, Number(DATA.settings.replyCountMin) || 1);
+        const countMax = Math.max(1, Number(DATA.settings.replyCountMax) || 3);
+        const count = Math.floor(Math.random() * (countMax - countMin + 1)) + countMin;
+        let wordPool = []; Object.values(DATA.aiWordGroups).forEach(arr => wordPool.push(...arr));
+        let emojiPool = []; Object.values(DATA.emojiGroups).forEach(arr => emojiPool.push(...arr));
+        if (wordPool.length === 0) wordPool = ['嗯', '好的'];
+
+        const items = [];
+        for (let i = 0; i < count; i++) {
+            let pick, type = 'text';
+            if (Math.random() <= 0.25 && emojiPool.length) {
+                pick = emojiPool[Math.floor(Math.random() * emojiPool.length)];
+                if (isMediaBase64(pick) || isImageUrl(pick)) type = 'image';
+                else type = 'text';
+            } else {
+                pick = wordPool[Math.floor(Math.random() * wordPool.length)];
+                type = 'text';
+            }
+            items.push({ text: pick, type });
+        }
+
+        let quoteIdx = undefined;
+        if (!isActive && Math.random() < DATA.settings.quoteRate) {
+            const now = getBeijingTime();
+            const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+            const candidates = DATA.messages.reduce((acc, m, idx) => {
+                if (m.from === 'me' && !m.patMsg && m.from !== 'system') {
+                    const msgTime = new Date(m.fullTime);
+                    if (msgTime >= threeHoursAgo && msgTime <= now) acc.push(idx);
+                }
+                return acc;
+            }, []);
+            if (candidates.length > 0) quoteIdx = candidates[Math.floor(Math.random() * candidates.length)];
+            else { const last = findLastIndex(DATA.messages, m => m.from === 'me' && !m.patMsg && m.from !== 'system'); if (last > -1) quoteIdx = last; }
+        }
+
+        const combine = DATA.settings.enableCombineCards;
+        const combineCount = Math.max(1, Number(DATA.settings.combineCardsCount) || 2);
+        const textItems = items.filter(it => it.type === 'text'), imageItems = items.filter(it => it.type === 'image');
+        if (combine) {
+            let combined = [];
+            for (let i = 0; i < textItems.length; i += combineCount) {
+                const chunk = textItems.slice(i, i + combineCount).map(it => it.text);
+                combined.push(chunk.join('\n'));
+            }
+            combined.forEach(txt => toSend.push({ type: 'text', text: txt, from: 'partner', quoteIdx }));
+            imageItems.forEach(img => toSend.push({ type: 'image', text: img.text, from: 'partner', quoteIdx }));
+        } else {
+            items.forEach(it => toSend.push({ type: it.type, text: it.text, from: 'partner', quoteIdx }));
+        }
+    }
+
+    if (toSend.length === 0) toSend.push({ type: 'text', text: '嗯', from: 'partner' });
+
+    replyTimer = setTimeout(() => {
+        replyTimer = null;
+        const now = getBeijingTime();
+        toSend.forEach((item, index) => {
+            const d = new Date(now.getTime() + index * 800);
+            const f = formatFullTime(d), h = formatHM(d);
+            const msgObj = {
+                from: 'partner',
+                time: h,
+                fullTime: f,
+                type: item.type || 'text',
+                text: item.text || '',
+                quoteIdx: item.quoteIdx !== undefined ? item.quoteIdx : undefined,
+            };
+            if (item.type === 'redpacket') {
+                msgObj.amount = item.amount || '0.00';
+                msgObj.blessing = item.blessing || '恭喜发财';
+            }
+            DATA.messages.push(msgObj);
+        });
+        saveData(); renderMessages(false);
+        restorePartnerStatus();
+
+        const BARK_TOKEN = "usXY4d3DcQzvmbdosUW73f";
+        const title = encodeURIComponent(DATA.partner.name);
+        const avatarUrl = DATA.partner.avatar && isImageUrl(DATA.partner.avatar) ? DATA.partner.avatar : "";
+        toSend.forEach((item, index) => {
+            const individualDelay = 2 + index;
+            let bodyText = '';
+            let isImage = false;
+            if (item.type === 'image') { bodyText = '[图片/涂鸦]'; isImage = true; }
+            else if (item.type === 'redpacket') { bodyText = `🧧 红包 ￥${item.amount} ${item.blessing}`; }
+            else { bodyText = item.text || '...'; }
+            let barkUrl = `https://api.day.app/${BARK_TOKEN}/${title}/${encodeURIComponent(bodyText)}?sound=droplet&delay=${individualDelay}&group=CalebChat`;
+            if (isImage && item.text) barkUrl += `&image=${encodeURIComponent(item.text)}`;
+            if (avatarUrl) barkUrl += `&icon=${encodeURIComponent(avatarUrl)}`;
+            fetch(barkUrl).catch(err => console.error("Bark 后台预约失败", err));
+        });
+    }, totalDelayMs);
+}
+
+// ============================================================
+//  状态管理
+// ============================================================
+function setPartnerStatus(text, cls) {
+    const el=document.getElementById('partnerStatus');
+    if(el) {
+        el.textContent=text;
+        el.className='status '+(cls||'');
+        if(cls !== 'typing' && cls !== 'read') {
+            DATA.partner.status = text;
+            DATA.state.lastStatusUpdate = Date.now();
+            saveData();
+        }
+    }
+}
+function restorePartnerStatus() {
+    const el = document.getElementById('partnerStatus');
+    if (!el) return;
+    const now = Date.now();
+    const minGap = DATA.settings.statusChangeMinHours * 3600 * 1000;
+    if (now - DATA.state.lastStatusUpdate >= minGap) {
+        const list = DATA.settings.statusCards;
+        if (list && list.length) {
+            DATA.partner.status = list[Math.floor(Math.random() * list.length)];
+            DATA.state.lastStatusUpdate = now;
+            saveData();
+        }
+    }
+    el.className = 'status';
+    el.textContent = DATA.partner.status;
+}
+
+function triggerAutoReply() {
+    simulatePartnerReply(true,false);
+    const now=getBeijingTime();
+    DATA.messages.push({ from:'system', text:'已触发回复', time:formatHM(now), fullTime:formatFullTime(now) });
+    saveData(); renderMessages(false);
+}
+function doTriggerReply() { closePatMini(); triggerAutoReply(); }
+function doInterruptReply() {
+    closePatMini();
+    if (replyTimer) {
+        clearTimeout(replyTimer);
+        replyTimer = null;
+        const now = getBeijingTime();
+        DATA.messages.push({ from:'system', text:'已打断回复', time:formatHM(now), fullTime:formatFullTime(now) });
+        saveData(); renderMessages(false);
+        restorePartnerStatus();
+    } else {
+        const now = getBeijingTime();
+        DATA.messages.push({ from:'system', text:'当前没有可打断的回复', time:formatHM(now), fullTime:formatFullTime(now) });
+        saveData(); renderMessages(false);
+    }
+}
+function handleMoreClick(event) {
+    event.stopPropagation();
+    const panel = document.getElementById('patMiniPanel');
+    const content = document.getElementById('patMiniContent');
+    content.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:8px;padding:4px 0;">
+            <button class="action-btn primary" onclick="doTriggerReply()" style="width:100%;">触发回复</button>
+            <button class="action-btn danger" onclick="doInterruptReply()" style="width:100%;">打断回复</button>
+        </div>
+    `;
+    const rect = event.target.getBoundingClientRect();
+    const appRect = document.getElementById('app').getBoundingClientRect();
+    let left = rect.left - appRect.left + 10;
+    let top = rect.top - appRect.top - 100;
+    let w = 180;
+    if (left + w > appRect.width) left = appRect.width - w - 10;
+    if (left < 10) left = 10;
+    if (top < 10) top = rect.bottom - appRect.top + 10;
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+    panel.style.display = 'block';
+    document.addEventListener('click', closeMorePanelOutside, {once:true});
+}
+function closeMorePanelOutside(e) {
+    const panel = document.getElementById('patMiniPanel');
+    if (!panel.contains(e.target)) panel.style.display = 'none';
+}
+function closePatMini() { document.getElementById('patMiniPanel').style.display = 'none'; }
+
+// ============================================================
+//  拍一拍
+// ============================================================
+function sendPat(text) {
+    const now=getBeijingTime(); DATA.messages.push({ from:'me', text:`我${text}`, time:formatHM(now), fullTime:formatFullTime(now), patMsg:true });
+    saveData(); renderMessages(false); simulatePartnerReply(false);
+}
+function openPatMini(event) {
+    event.stopPropagation();
+    const panel=document.getElementById('patMiniPanel'), content=document.getElementById('patMiniContent');
+    let html='';
+    DATA.myPatCards.forEach(p=>{ html+=`<span class="pat-tag" data-pat="${escapeHtml(p)}">${escapeHtml(p)}</span>`; });
+    content.innerHTML=html;
+    content.querySelectorAll('.pat-tag').forEach(el=>{
+        el.addEventListener('click', function(){ sendPat(this.dataset.pat); closePatMini(); });
+    });
+    const rect=document.getElementById('partnerInfo').getBoundingClientRect(), app=document.getElementById('app').getBoundingClientRect();
+    let left=rect.left-app.left+10, top=rect.bottom-app.top+6, w=260;
+    if(left+w>app.width) left=app.width-w-10; if(left<10) left=10;
+    panel.style.left=left+'px'; panel.style.top=top+'px'; panel.style.display='block';
+    document.addEventListener('click', closePatMiniOutside, {once:true});
+}
+function closePatMiniOutside(e) { const panel=document.getElementById('patMiniPanel'); if(!panel.contains(e.target)) closePatMini(); }
+
+// ============================================================
+//  头像 & 壁纸 & 皮肤
+// ============================================================
+function updatePartnerAvatar(e) {
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{ DATA.partner.avatar=cleanBase64(ev.target.result); saveData(); renderPartnerInfo(); };
+    reader.readAsDataURL(file);
+    e.target.value='';
+}
+function setAvatarByUrl() {
+    const url=document.getElementById('avatarUrlInput').value.trim();
+    if(!url) return alert('请输入图片URL');
+    DATA.partner.avatar = url;
+    saveData(); renderPartnerInfo(); closePanel(); alert('头像已更新');
+}
+function renderPartnerInfo() {
+    const avatar=document.getElementById('partnerAvatar'); let img=avatar.querySelector('img');
+    if(DATA.partner.avatar) {
+        if(!img){ img=document.createElement('img'); avatar.innerHTML=''; avatar.appendChild(img); }
+        img.src = DATA.partner.avatar;
+    } else {
+        avatar.innerHTML='<i class="fas fa-user"></i>';
+    }
+    document.getElementById('partnerName').textContent=DATA.partner.name;
+    const st=document.getElementById('partnerStatus');
+    if(st && !st.classList.contains('typing') && !st.classList.contains('read')) st.textContent=DATA.partner.status;
+}
+function openMediaUpload() { document.getElementById('mediaUploadInput').click(); }
+function directSendMedia(e) {
+    const files=e.target.files; let finish=0, total=files.length; if(!total) return;
+    for(const f of files) {
+        const reader=new FileReader();
+        reader.onload=ev=>{
+            const now=getBeijingTime(); const type=f.type.startsWith('video')?'video':'image';
+            const data = cleanBase64(ev.target.result);
+            DATA.messages.push({ from:'me', text:data, time:formatHM(now), fullTime:formatFullTime(now), type });
+            if(++finish===total){ saveData(); renderMessages(false); simulatePartnerReply(false); }
+        };
+        reader.readAsDataURL(f);
+    }
+    e.target.value='';
+}
+function setWallpaper(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        DATA.settings.wallpaper = cleanBase64(ev.target.result);
+        saveData(); applyWallpaper(); closePanel(); alert('壁纸已更新');
+    };
+    reader.readAsDataURL(file);
+    e.target.value='';
+}
+function setWallpaperByUrl() {
+    const url = document.getElementById('wallpaperUrlInput').value.trim();
+    if (!url) return alert('请输入图片URL');
+    DATA.settings.wallpaper = url;
+    saveData(); applyWallpaper(); closePanel(); alert('壁纸已更新');
+}
+function clearWallpaper() { DATA.settings.wallpaper=''; saveData(); applyWallpaper(); closePanel(); alert('已清除'); }
+function applySkin() { document.getElementById('topBar').style.background=DATA.settings.skin.top||'#ffffff'; document.getElementById('bottomBar').style.background=DATA.settings.skin.bottom||'#ffffff'; }
+
+// ============================================================
+//  Tab 切换（仅用于样式）
+// ============================================================
+function switchTab(tabName, ev) {
+    document.querySelectorAll('#tabBar i').forEach(i=>i.classList.remove('active'));
+    if(ev && ev.target) ev.target.classList.add('active');
+    else document.querySelectorAll('#tabBar i').forEach(i=>{ if(i.dataset.tab===tabName) i.classList.add('active'); });
+}
+
+// ============================================================
+//  后台保活 & 主动发送
+// ============================================================
+function toggleBackgroundKeep() {
+    if(bgKeepTimer) clearInterval(bgKeepTimer);
+    if(!DATA.settings.enableBackgroundKeep) return;
+    bgKeepTimer = setInterval(() => {
+        const now = Date.now(), diff = now - DATA.state.lastStatusUpdate;
+        const minGap = DATA.settings.statusChangeMinHours*3600*1000, maxGap = DATA.settings.statusChangeMaxHours*3600*1000;
+        if(diff >= minGap) {
+            const rand = Math.floor(Math.random()*(maxGap-minGap)) + minGap;
+            if(diff >= rand && DATA.settings.statusCards.length) {
+                DATA.partner.status = DATA.settings.statusCards[Math.floor(Math.random()*DATA.settings.statusCards.length)];
+                DATA.state.lastStatusUpdate = now;
+                saveData(); renderPartnerInfo();
+            }
+        }
+        if(document.hidden) document.title = document.title===originalTitle ? '【新消息】CALEB' : originalTitle;
+        else document.title = originalTitle;
+    }, 1500);
+}
+function startActiveSendTimer() { stopActiveSendTimer(); if(DATA.settings.enableActiveSend) scheduleActiveSend(); }
+function stopActiveSendTimer() { if(activeSendTimer){ clearTimeout(activeSendTimer); activeSendTimer=null; } }
+function scheduleActiveSend() {
+    if(!DATA.settings.enableActiveSend) return;
+    const min=Number(DATA.settings.activeSendMinMinutes)||20, max=Number(DATA.settings.activeSendMaxMinutes)||40;
+    const delay = max<=min ? min*60*1000 : Math.floor(Math.random()*(max-min)*60000)+min*60000;
+    activeSendTimer = setTimeout(()=>{ simulatePartnerReply(true,true); scheduleActiveSend(); }, delay);
+}
+
+// ============================================================
+//  音频后台保活（挂静音）
+// ============================================================
+let audioKeepContext = null;
+let audioKeepSource = null;
+let audioKeepGain = null;
+
+function startAudioKeep() {
+    try {
+        stopAudioKeep();
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) {
+            console.warn('当前浏览器不支持 AudioContext');
+            return;
+        }
+        audioKeepContext = new AudioCtx();
+        const sampleRate = audioKeepContext.sampleRate;
+        const buffer = audioKeepContext.createBuffer(1, sampleRate, sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = 0;
+
+        audioKeepSource = audioKeepContext.createBufferSource();
+        audioKeepSource.buffer = buffer;
+        audioKeepSource.loop = true;
+
+        audioKeepGain = audioKeepContext.createGain();
+        audioKeepGain.gain.value = 0;
+
+        audioKeepSource.connect(audioKeepGain);
+        audioKeepGain.connect(audioKeepContext.destination);
+        audioKeepSource.start(0);
+        console.log('🎵 音频保活已启动（静音循环）');
+    } catch (e) {
+        console.warn('音频保活启动失败（可能被浏览器拦截）', e);
+    }
+}
+
+function stopAudioKeep() {
+    try {
+        if (audioKeepSource) {
+            try { audioKeepSource.stop(); } catch(e) {}
+            audioKeepSource = null;
+        }
+        if (audioKeepContext && audioKeepContext.state !== 'closed') {
+            audioKeepContext.close();
+        }
+        audioKeepContext = null;
+        audioKeepGain = null;
+        console.log('🔇 音频保活已停止');
+    } catch(e) { /* 静默忽略 */ }
+}
+
+function toggleAudioKeep(enable) {
+    DATA.settings.enableAudioKeep = !!enable;
+    saveData();
+    if (enable) {
+        startAudioKeep();
+        if (audioKeepContext && audioKeepContext.state === 'suspended') {
+            const resumeOnInteraction = function() {
+                if (audioKeepContext && audioKeepContext.state === 'suspended') {
+                    audioKeepContext.resume().then(() => {
+                        console.log('✅ 音频上下文已恢复（用户手势）');
+                    }).catch(err => console.warn('恢复失败', err));
+                }
+                document.removeEventListener('click', resumeOnInteraction);
+                document.removeEventListener('touchstart', resumeOnInteraction);
+            };
+            document.addEventListener('click', resumeOnInteraction);
+            document.addEventListener('touchstart', resumeOnInteraction);
+            setTimeout(() => {
+                if (audioKeepContext && audioKeepContext.state === 'suspended') {
+                    audioKeepContext.resume().catch(() => {});
+                }
+            }, 5000);
+        }
+    } else {
+        stopAudioKeep();
+    }
+}
+
+function resumeAudioContextIfNeeded() {
+    if (DATA.settings.enableAudioKeep && audioKeepContext && audioKeepContext.state === 'suspended') {
+        audioKeepContext.resume().then(() => {
+            console.log('↩️ 通过交互恢复了音频上下文');
+        }).catch(() => {});
+    }
+}
+
+// ============================================================
+//  面板（设置、字卡、表情）
+// ============================================================
+let deleteMode = { ai: {}, status: false, myPat: false, partnerPat: false };
+let emojiExpanded = {};
+let statusExpanded = false, myPatExpanded = false, partnerPatExpanded = false;
+
+function openPanel(type) {
+    resumeAudioContextIfNeeded();  // 唤醒音频上下文
+    const overlay=document.getElementById('panelOverlay'), body=document.getElementById('panelBody');
+    let html='';
+    if(type==='emojiPanel') {
+        html=`<h3>😊 表情包分组（点击发送）</h3>`;
+        const groups=Object.keys(DATA.emojiGroups);
+        if(!groups.length) html+=`<p style="color:#999;">暂无分组</p>`;
+        groups.forEach(g=>{
+            const items=DATA.emojiGroups[g]||[];
+            const isExpanded = emojiExpanded[g] || false;
+            html+=`<div class="word-card-group">
+                <div class="group-title">
+                    <span>${escapeHtml(g)}</span>
+                    <div>
+                        <span class="expand-toggle" onclick="toggleEmojiExpand('${escapeHtml(g)}')">${isExpanded ? '- 收起' : '+ 展开'}</span>
+                        <button class="action-btn" onclick="removeEmojiGroup('${escapeHtml(g)}')">删除分组</button>
+                    </div>
+                </div>
+                <div class="grid-emoji" id="emojiGrid_${escapeHtml(g)}" style="display:${isExpanded ? 'grid' : 'none'}">`;
+            items.forEach(c=>{
+                const safe=cleanBase64(c);
+                if(isMediaBase64(safe) || isImageUrl(safe)) {
+                    html+=`<div class="emoji-item" onclick="selectEmojiItem('${safe.replace(/'/g,"\\'")}')"><img src="${safe}" loading="lazy"></div>`;
+                } else {
+                    html+=`<div class="emoji-item" onclick="selectEmojiItem('${escapeHtml(c).replace(/'/g,"\\'")}')"><span class="emoji-text">${escapeHtml(c)}</span></div>`;
+                }
+            });
+            html+=`</div>
+                <div class="flex-row"><input id="emojiUrlInput_${escapeHtml(g)}" placeholder="图片URL"><button class="action-btn" onclick="addEmojiUrl('${escapeHtml(g)}')">添加URL</button></div>
+                <button class="action-btn primary" onclick="uploadEmojiToGroup('${escapeHtml(g)}')">📤 上传图片</button>
+            </div>`;
+        });
+        html+=`<div class="flex-row mt-2"><input id="newEmojiGroup" placeholder="新分组名称"><button class="action-btn primary" onclick="addEmojiGroup()">+ 创建分组</button></div>`;
+    } else if(type==='aiWordPanel') {
+        html=`<h3>📚 字卡回复库（对方自动回复使用）</h3><p style="font-size:13px;color:#888;">点击字卡不会发送，仅用于管理</p>
+            <div class="flex-row"><button class="action-btn primary" onclick="document.getElementById('wordJsonInput').click()">📥 导入字卡JSON</button></div>
+            <div style="font-size:12px;color:#666;margin:4px 0;">JSON格式: {"分组名":["词条1","词条2"]}</div>`;
+        const groups=Object.keys(DATA.aiWordGroups);
+        if(!groups.length) html+=`<p style="color:#999;">暂无分组</p>`;
+        groups.forEach(g=>{
+            const words=DATA.aiWordGroups[g]||[];
+            const id=g.replace(/[^a-zA-Z0-9]/g,'_')+'_'+Math.random().toString(36).substr(2,4);
+            const isDelMode = deleteMode.ai[g] || false;
+            html+=`<div class="word-card-group">
+                <div class="group-title">
+                    <span>${escapeHtml(g)}</span>
+                    <div>
+                        <button class="action-btn ${isDelMode?'del-mode-toggle active':'del-mode-toggle'}" onclick="toggleAiDeleteMode('${escapeHtml(g)}')">${isDelMode?'退出删除':'删除模式'}</button>
+                        <button class="action-btn" onclick="removeAiGroup('${escapeHtml(g)}')">删除分组</button>
+                    </div>
+                </div>
+                <div class="card-list-wrap">
+                    <div class="card-list-collapsed" id="coll_${id}">`;
+            words.forEach((w,idx)=>{
+                if(isDelMode) {
+                    html+=`<span class="tag del-mode" data-group="${escapeHtml(g)}" data-idx="${idx}" onclick="toggleAiSelect(this)">${escapeHtml(w)}</span>`;
+                } else {
+                    html+=`<span class="tag">${escapeHtml(w)}</span>`;
+                }
+            });
+            html+=`</div><div class="card-list-full" id="full_${id}" style="display:none">`;
+            words.forEach((w,idx)=>{
+                if(isDelMode) {
+                    html+=`<span class="tag del-mode" data-group="${escapeHtml(g)}" data-idx="${idx}" onclick="toggleAiSelect(this)">${escapeHtml(w)}</span>`;
+                } else {
+                    html+=`<span class="tag">${escapeHtml(w)}</span>`;
+                }
+            });
+            html+=`</div><span class="expand-toggle" onclick="toggleCardExpand('${id}')">+ 展开全部</span>
+                </div>
+                ${isDelMode ? `<button class="action-btn" onclick="deleteSelectedAi('${escapeHtml(g)}')">🗑 删除选中</button>` : ''}
+                <textarea id="batchAi_${id}" class="batch-textarea" placeholder="每行一个字卡"></textarea>
+                <button class="action-btn primary" onclick="batchAddAiCards('${id}','${escapeHtml(g)}')">批量添加</button>
+            </div>`;
+        });
+        html+=`<div class="flex-row mt-2"><input id="newAiGroup" placeholder="新字卡分组"><button class="action-btn primary" onclick="addAiGroup()">+ 创建分组</button></div>
+            <div class="mt-2"><button class="action-btn" onclick="aiDeduplicate()">🔄 全局去重</button></div>`;
+    } else if(type==='settingsPanel') {
+        const statusList=DATA.settings.statusCards||[];
+        const myPat=DATA.myPatCards||[];
+        const partnerPat=DATA.partnerPatCards||[];
+        html=`<h3>⚙️ 设置</h3>
+            <div class="item"><span class="label">对方昵称</span><input id="setName" value="${escapeHtml(DATA.partner.name)}" onchange="DATA.partner.name=this.value;saveData();renderPartnerInfo()"></div>
+            <div class="item">
+                <span class="label">头像</span>
+                <div class="avatar-url-group">
+                    <input id="avatarUrlInput" placeholder="输入图片URL">
+                    <button class="action-btn primary" onclick="setAvatarByUrl()">设置URL</button>
+                </div>
+                <div style="font-size:12px;color:#888;margin-top:4px;">或点击头像上传本地图片</div>
+            </div>
+            <div class="item"><span class="label">顶部栏颜色</span><input type="color" id="skinTop" value="${DATA.settings.skin.top}" onchange="DATA.settings.skin.top=this.value;saveData();applySkin()"></div>
+            <div class="item"><span class="label">底部栏颜色</span><input type="color" id="skinBottom" value="${DATA.settings.skin.bottom}" onchange="DATA.settings.skin.bottom=this.value;saveData();applySkin()"></div>
+            <div class="item">
+                <span class="label">状态库</span>
+                <div>
+                    <button class="action-btn ${deleteMode.status?'del-mode-toggle active':'del-mode-toggle'}" onclick="toggleStatusDeleteMode()">${deleteMode.status?'退出删除':'删除模式'}</button>
+                    <span class="expand-toggle" onclick="toggleStatusExpand()" style="margin-left:8px;">+ 展开</span>
+                </div>
+                <div class="list-with-check" id="statusListContainer">
+                    ${statusList.map((s,idx)=>`<span class="item-check" style="${deleteMode.status?'cursor:pointer;':''}" onclick="${deleteMode.status?`toggleStatusSelect(this,${idx})`:''}">${deleteMode.status?`<span style="display:inline-block;width:16px;height:16px;border:2px solid #999;border-radius:50%;margin-right:4px;vertical-align:middle;" class="status-selector" data-idx="${idx}"></span>`:''} ${escapeHtml(s)}</span>`).join('')}
+                </div>
+                ${deleteMode.status ? `<button class="action-btn" onclick="deleteSelectedStatus()">🗑 删除选中</button>` : ''}
+                <textarea id="statusBatchArea" rows="3" placeholder="每行一个状态"></textarea>
+                <button class="action-btn primary" onclick="batchAddStatus()">批量添加</button>
+            </div>
+            <div class="item"><span class="label">回复最慢(分钟)</span><input type="number" min="0" value="${DATA.settings.replyMinMinutes}" onchange="DATA.settings.replyMinMinutes=Math.max(0,parseInt(this.value)||0);saveData()"></div>
+            <div class="item"><span class="label">回复最快(秒)</span><input type="number" min="1" value="${DATA.settings.replyMaxSeconds}" onchange="DATA.settings.replyMaxSeconds=Math.max(1,parseInt(this.value)||10);saveData()"></div>
+            <div class="item"><span class="label">单次回复条数（最少）</span><input type="number" min="1" value="${DATA.settings.replyCountMin}" onchange="DATA.settings.replyCountMin=Math.max(1,parseInt(this.value)||1);saveData()"></div>
+            <div class="item"><span class="label">单次回复条数（最多）</span><input type="number" min="1" value="${DATA.settings.replyCountMax}" onchange="DATA.settings.replyCountMax=Math.max(1,parseInt(this.value)||3);saveData()"></div>
+            <div class="item"><span class="label">引用概率 (0~1)</span><input type="number" step="0.01" min="0" max="1" value="${DATA.settings.quoteRate}" onchange="DATA.settings.quoteRate=Math.min(1,Math.max(0,Number(this.value)));saveData()"></div>
+            <div class="item"><span class="label">已读不回概率 (0~1)</span><input type="number" step="0.01" min="0" max="1" value="${DATA.settings.ignoreRate}" onchange="DATA.settings.ignoreRate=Math.min(1,Math.max(0,Number(this.value)));saveData()"></div>
+            <div class="item"><span class="label">拼字卡</span><input type="checkbox" ${DATA.settings.enableCombineCards?'checked':''} onchange="DATA.settings.enableCombineCards=this.checked;saveData()"></div>
+            <div class="item"><span class="label">每条拼接字数</span><input type="number" min="1" value="${DATA.settings.combineCardsCount}" onchange="DATA.settings.combineCardsCount=Math.max(1,parseInt(this.value)||2);saveData()"></div>
+            <div class="item"><span class="label">对方主动发信息</span><input type="checkbox" ${DATA.settings.enableActiveSend?'checked':''} onchange="DATA.settings.enableActiveSend=this.checked;saveData();startActiveSendTimer()"></div>
+            <div class="item"><span class="label">主动发送间隔(分钟) 最小</span><input type="number" min="1" value="${DATA.settings.activeSendMinMinutes}" onchange="DATA.settings.activeSendMinMinutes=Math.max(1,parseInt(this.value)||1);saveData();startActiveSendTimer()"></div>
+            <div class="item"><span class="label">主动发送间隔(分钟) 最大</span><input type="number" min="1" value="${DATA.settings.activeSendMaxMinutes}" onchange="DATA.settings.activeSendMaxMinutes=Math.max(1,parseInt(this.value)||1);saveData();startActiveSendTimer()"></div>
+            <div class="item"><span class="label">状态更换间隔(小时) 最小</span><input type="number" min="0.5" step="0.5" value="${DATA.settings.statusChangeMinHours}" onchange="DATA.settings.statusChangeMinHours=Math.max(0.5,parseFloat(this.value)||1);saveData()"></div>
+            <div class="item"><span class="label">状态更换间隔(小时) 最大</span><input type="number" min="0.5" step="0.5" value="${DATA.settings.statusChangeMaxHours}" onchange="DATA.settings.statusChangeMaxHours=Math.max(0.5,parseFloat(this.value)||1);saveData()"></div>
+            <div class="item"><span class="label">后台保活</span><input type="checkbox" ${DATA.settings.enableBackgroundKeep?'checked':''} onchange="DATA.settings.enableBackgroundKeep=this.checked;saveData();toggleBackgroundKeep()"></div>
+            <!-- 新增音频保活开关 -->
+            <div class="item">
+                <span class="label">音频保活（挂静音）</span>
+                <input type="checkbox" ${DATA.settings.enableAudioKeep?'checked':''} 
+                       onchange="toggleAudioKeep(this.checked);">
+                <span style="font-size:11px;color:#999;">后台定时器加速（需点击页面激活）</span>
+            </div>
+            <div class="item"><span class="label">桌面通知</span><input type="checkbox" ${DATA.settings.enableMsgNotify?'checked':''} onchange="DATA.settings.enableMsgNotify=this.checked;saveData();if(this.checked) requestNotificationPermission();"></div>
+            <div class="item"><span class="label">聊天壁纸</span>
+                <div class="flex-row" style="flex-wrap: nowrap;">
+                    <button class="action-btn" onclick="document.getElementById('wallpaperInput').click()" style="white-space:nowrap;">上传壁纸</button>
+                    <button class="action-btn" onclick="clearWallpaper()">清除</button>
+                </div>
+                <div class="flex-row" style="margin-top:4px;">
+                    <input id="wallpaperUrlInput" placeholder="输入壁纸图片URL">
+                    <button class="action-btn primary" onclick="setWallpaperByUrl()">设置URL</button>
+                </div>
+            </div>
+            <div class="item">
+                <span class="label">我的拍一拍库（双击名字）</span>
+                <div>
+                    <button class="action-btn ${deleteMode.myPat?'del-mode-toggle active':'del-mode-toggle'}" onclick="toggleMyPatDeleteMode()">${deleteMode.myPat?'退出删除':'删除模式'}</button>
+                    <span class="expand-toggle" onclick="toggleMyPatExpand()" style="margin-left:8px;">+ 展开</span>
+                </div>
+                <div class="list-with-check" id="myPatListContainer">
+                    ${myPat.map((p,idx)=>`<span class="item-check" style="${deleteMode.myPat?'cursor:pointer;':''}" onclick="${deleteMode.myPat?`toggleMyPatSelect(this,${idx})`:''}">${deleteMode.myPat?`<span style="display:inline-block;width:16px;height:16px;border:2px solid #999;border-radius:50%;margin-right:4px;vertical-align:middle;" class="myPat-selector" data-idx="${idx}"></span>`:''} ${escapeHtml(p)}</span>`).join('')}
+                </div>
+                ${deleteMode.myPat ? `<button class="action-btn" onclick="deleteSelectedMyPat()">🗑 删除选中</button>` : ''}
+                <textarea id="myPatBatchArea" rows="3" placeholder="每行一个动作"></textarea>
+                <button class="action-btn primary" onclick="batchAddMyPat()">批量添加</button>
+            </div>
+            <div class="item">
+                <span class="label">对方的拍一拍库（3%概率使用）</span>
+                <div>
+                    <button class="action-btn ${deleteMode.partnerPat?'del-mode-toggle active':'del-mode-toggle'}" onclick="togglePartnerPatDeleteMode()">${deleteMode.partnerPat?'退出删除':'删除模式'}</button>
+                    <span class="expand-toggle" onclick="togglePartnerPatExpand()" style="margin-left:8px;">+ 展开</span>
+                </div>
+                <div class="list-with-check" id="partnerPatListContainer">
+                    ${partnerPat.map((p,idx)=>`<span class="item-check" style="${deleteMode.partnerPat?'cursor:pointer;':''}" onclick="${deleteMode.partnerPat?`togglePartnerPatSelect(this,${idx})`:''}">${deleteMode.partnerPat?`<span style="display:inline-block;width:16px;height:16px;border:2px solid #999;border-radius:50%;margin-right:4px;vertical-align:middle;" class="partnerPat-selector" data-idx="${idx}"></span>`:''} ${escapeHtml(p)}</span>`).join('')}
+                </div>
+                ${deleteMode.partnerPat ? `<button class="action-btn" onclick="deleteSelectedPartnerPat()">🗑 删除选中</button>` : ''}
+                <textarea id="partnerPatBatchArea" rows="3" placeholder="每行一个动作"></textarea>
+                <button class="action-btn primary" onclick="batchAddPartnerPat()">批量添加</button>
+            </div>
+            <div class="item">
+                <span class="label">全局自定义CSS</span>
+                <textarea id="customGlobalCSS" rows="4">${DATA.settings.customGlobalCSS||''}</textarea>
+                <div class="flex-row">
+                    <button class="action-btn" onclick="saveCustomCSS()">应用</button>
+                    <button class="action-btn" onclick="clearCustomCSS('global')">清除</button>
+                </div>
+            </div>
+            <div class="item">
+                <span class="label">气泡自定义CSS</span>
+                <textarea id="customBubbleCSS" rows="4">${DATA.settings.customBubbleCSS||''}</textarea>
+                <div class="flex-row">
+                    <button class="action-btn" onclick="saveCustomCSS()">应用</button>
+                    <button class="action-btn" onclick="clearCustomCSS('bubble')">清除</button>
+                </div>
+            </div>
+            <div class="mt-2 flex-row">
+                <button class="action-btn primary" onclick="exportData()">📤 导出数据</button>
+                <button class="action-btn" onclick="document.getElementById('importFile').click()">📥 导入备份</button>
+            </div>
+            <div class="mt-2" style="border-top:1px solid #eee; padding-top:12px;">
+                <button class="action-btn danger" onclick="clearAllData()" style="width:100%;">🗑 清除所有数据</button>
+            </div>
+            <div style="color:#999;font-size:12px;margin-top:10px;">数据自动保存在本地</div>
+        `;
+    }
+    body.innerHTML=html;
+    overlay.classList.add('open');
+    if(type==='settingsPanel') {
+        document.getElementById('customGlobalCSS').value = DATA.settings.customGlobalCSS||'';
+        document.getElementById('customBubbleCSS').value = DATA.settings.customBubbleCSS||'';
+        statusExpanded = false; myPatExpanded = false; partnerPatExpanded = false;
+        const statusContainer = document.getElementById('statusListContainer');
+        if(statusContainer) statusContainer.style.display = 'none';
+        const myContainer = document.getElementById('myPatListContainer');
+        if(myContainer) myContainer.style.display = 'none';
+        const partnerContainer = document.getElementById('partnerPatListContainer');
+        if(partnerContainer) partnerContainer.style.display = 'none';
+        document.querySelectorAll('.expand-toggle[onclick*="toggleStatusExpand"]').forEach(el => el.textContent = '+ 展开');
+        document.querySelectorAll('.expand-toggle[onclick*="toggleMyPatExpand"]').forEach(el => el.textContent = '+ 展开');
+        document.querySelectorAll('.expand-toggle[onclick*="togglePartnerPatExpand"]').forEach(el => el.textContent = '+ 展开');
+    }
+}
+function closePanel() { document.getElementById('panelOverlay').classList.remove('open'); }
+
+// ============================================================
+//  清除所有数据
+// ============================================================
+function clearAllData() {
+    if (!confirm('⚠️ 确定要清除所有数据吗？此操作不可恢复！')) return;
+    localStorage.removeItem('CALEB_CHAT_DATA');
+    DATA.messages = [];
+    DATA.partner = { name: 'CALEB', status: '在线', avatar: '' };
+    DATA.emojiGroups = { "emoji": ["🥺","😋","😽","🥰","😈","🍏","🍎","💕","🐈","🐆","👌","😉","💤","😭","😍","😘","🙂‍↕️","🤏","😇","☺️","😘","😚","🥳","😎","🥵","🤬","😳","😢","🫣","🥶","🥱","😪","🤧","😴","😵‍💫","🤕","🤲🏻","🫶🏻","🙌🏻","👊🏻","👉🏻","🫳🏻","✌🏻","👂🏻","✍🏻","🦷","👀","🫂","🫀","👅","👄"] };
+    DATA.aiWordGroups = JSON.parse(JSON.stringify(PRESET_WORD_GROUPS));
+    DATA.myPatCards = [...PRESET_PAT_CARDS];
+    DATA.partnerPatCards = [...PRESET_PAT_CARDS];
+    DATA.settings.statusCards = [...PRESET_STATUS_CARDS];
+    DATA.settings.skin = { top: '#ffffff', bottom: '#ffffff' };
+    DATA.settings.wallpaper = '';
+    DATA.settings.customGlobalCSS = '';
+    DATA.settings.customBubbleCSS = '';
+    DATA.settings.enableBackgroundKeep = false;
+    DATA.settings.enableMsgNotify = false;
+    DATA.settings.ignoreRate = 0.1;
+    DATA.settings.quoteRate = 0.25;
+    DATA.settings.replyMinMinutes = 1;
+    DATA.settings.replyMaxSeconds = 30;
+    DATA.settings.replyCountMin = 1;
+    DATA.settings.replyCountMax = 3;
+    DATA.settings.enableCombineCards = false;
+    DATA.settings.combineCardsCount = 2;
+    DATA.settings.enableActiveSend = false;
+    DATA.settings.activeSendMinMinutes = 20;
+    DATA.settings.activeSendMaxMinutes = 40;
+    DATA.settings.statusChangeMinHours = 3;
+    DATA.settings.statusChangeMaxHours = 5;
+    DATA.settings.enableAudioKeep = false;
+    DATA.state = { lastStatusUpdate: Date.now(), statusIndex: 0 };
+    saveData();
+    renderPartnerInfo();
+    renderMessages(false);
+    applySkin();
+    applyWallpaper();
+    applyCustomCSS();
+    toggleBackgroundKeep();
+    startActiveSendTimer();
+    stopAudioKeep(); // 停掉音频
+    closePanel();
+    alert('✅ 所有数据已清除，已恢复初始状态');
+}
+
+// ============================================================
+//  其他辅助函数
+// ============================================================
+function selectEmojiItem(data) {
+    const now=getBeijingTime(), full=formatFullTime(now), hm=formatHM(now);
+    let type='text';
+    if(isMediaBase64(data) || isImageUrl(data)) type='image';
+    DATA.messages.push({ from:'me', text:data, time:hm, fullTime:full, type });
+    saveData(); renderMessages(false); closePanel(); simulatePartnerReply(false);
+}
+function clearCustomCSS(type) {
+    if(type === 'global') { document.getElementById('customGlobalCSS').value = ''; DATA.settings.customGlobalCSS = ''; }
+    else if(type === 'bubble') { document.getElementById('customBubbleCSS').value = ''; DATA.settings.customBubbleCSS = ''; }
+    saveData(); applyCustomCSS(); alert('已清除');
+}
+function applyCustomCSS() {
+    document.getElementById('customGlobalStyle').textContent=DATA.settings.customGlobalCSS||'';
+    document.getElementById('customBubbleStyle').textContent=DATA.settings.customBubbleCSS||'';
+}
+function saveCustomCSS() {
+    DATA.settings.customGlobalCSS=document.getElementById('customGlobalCSS').value||'';
+    DATA.settings.customBubbleCSS=document.getElementById('customBubbleCSS').value||'';
+    saveData(); applyCustomCSS(); alert('CSS已应用');
+}
+function toggleEmojiExpand(group) { emojiExpanded[group] = !emojiExpanded[group]; openPanel('emojiPanel'); }
+function addEmojiGroup() { const input=document.getElementById('newEmojiGroup'); const name=input.value.trim(); if(!name) return alert('请输入名称'); if(DATA.emojiGroups[name]) return alert('已存在'); DATA.emojiGroups[name]=[]; saveData(); openPanel('emojiPanel'); alert('创建成功'); }
+function removeEmojiGroup(g) { if(!confirm(`删除分组「${g}」？`)) return; delete DATA.emojiGroups[g]; saveData(); openPanel('emojiPanel'); }
+function uploadEmojiToGroup(g) { document.getElementById('emojiFileInput').dataset.targetGroup=g; document.getElementById('emojiFileInput').click(); }
+function importEmojiImages(e) {
+    const target=e.target.dataset.targetGroup||'emoji';
+    const files=e.target.files; let finish=0, total=files.length; if(!total) return;
+    for(const f of files) {
+        const reader=new FileReader();
+        reader.onload=ev=>{ if(!DATA.emojiGroups[target]) DATA.emojiGroups[target]=[]; DATA.emojiGroups[target].push(cleanBase64(ev.target.result)); if(++finish===total){ saveData(); openPanel('emojiPanel'); alert('导入成功'); } };
+        reader.readAsDataURL(f);
+    }
+    e.target.value='';
+}
+function addEmojiUrl(g) {
+    const input = document.querySelector(`#emojiUrlInput_${g}`);
+    if(!input) return alert('未找到输入框，请刷新重试');
+    const url=input.value.trim();
+    if(!url) return alert('请输入图片URL');
+    if(!DATA.emojiGroups[g]) DATA.emojiGroups[g]=[];
+    DATA.emojiGroups[g].push(url);
+    saveData(); openPanel('emojiPanel'); alert('添加成功');
+}
+function toggleAiDeleteMode(group) {
+    if(deleteMode.ai[group]) delete deleteMode.ai[group];
+    else deleteMode.ai[group] = true;
+    openPanel('aiWordPanel');
+}
+function toggleAiSelect(el) { el.classList.toggle('selected'); }
+function deleteSelectedAi(group) {
+    const sel = document.querySelectorAll(`.tag.del-mode.selected[data-group="${group}"]`);
+    if(!sel.length) return alert('请至少选中一个字卡');
+    const indices = [...sel].map(el => parseInt(el.dataset.idx)).sort((a,b)=>b-a);
+    const arr = DATA.aiWordGroups[group];
+    indices.forEach(i => arr.splice(i,1));
+    saveData(); openPanel('aiWordPanel'); alert('删除成功');
+}
+function addAiGroup() { const input=document.getElementById('newAiGroup'); const name=input.value.trim(); if(!name) return alert('请输入名称'); if(DATA.aiWordGroups[name]) return alert('已存在'); DATA.aiWordGroups[name]=[]; saveData(); openPanel('aiWordPanel'); alert('创建成功'); }
+function removeAiGroup(g) { if(!confirm(`删除分组「${g}」？`)) return; delete DATA.aiWordGroups[g]; saveData(); openPanel('aiWordPanel'); }
+function batchAddAiCards(id, groupName) {
+    const ta=document.getElementById(`batchAi_${id}`); if(!ta) return alert('未找到输入框');
+    const lines=ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(!lines.length) return alert('请输入至少一个字卡');
+    if(!DATA.aiWordGroups[groupName]) DATA.aiWordGroups[groupName]=[];
+    DATA.aiWordGroups[groupName].push(...lines);
+    aiDeduplicate(); saveData(); openPanel('aiWordPanel'); alert(`添加 ${lines.length} 个`);
+}
+function aiDeduplicate() { Object.keys(DATA.aiWordGroups).forEach(g=>{ DATA.aiWordGroups[g]=[...new Set(DATA.aiWordGroups[g])]; }); saveData(); alert('去重完成'); }
+function toggleCardExpand(id) {
+    const coll=document.getElementById(`coll_${id}`), full=document.getElementById(`full_${id}`);
+    const toggle=document.querySelector(`.expand-toggle[onclick*="'${id}'"]`);
+    if(!coll || !full || !toggle) return;
+    if(coll.style.display==='none') { coll.style.display='-webkit-box'; full.style.display='none'; toggle.textContent='+ 展开全部'; }
+    else { coll.style.display='none'; full.style.display='flex'; toggle.textContent='- 收起'; }
+}
+function toggleStatusDeleteMode() { deleteMode.status = !deleteMode.status; openPanel('settingsPanel'); }
+let statusSelected = new Set();
+function toggleStatusSelect(el, idx) {
+    const selector = el.querySelector('.status-selector');
+    if(!selector) return;
+    if(statusSelected.has(idx)) { statusSelected.delete(idx); selector.style.background = 'transparent'; selector.style.borderColor = '#999'; }
+    else { statusSelected.add(idx); selector.style.background = '#ff3b30'; selector.style.borderColor = '#ff3b30'; }
+}
+function deleteSelectedStatus() {
+    if(!statusSelected.size) return alert('请至少选中一个');
+    const indices = [...statusSelected].sort((a,b)=>b-a);
+    const arr = DATA.settings.statusCards;
+    indices.forEach(i => arr.splice(i,1));
+    statusSelected.clear(); saveData(); openPanel('settingsPanel'); alert('删除成功');
+}
+function batchAddStatus() {
+    const ta=document.getElementById('statusBatchArea'); if(!ta) return;
+    const lines=ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(!lines.length) return alert('请输入至少一个状态');
+    DATA.settings.statusCards.push(...lines);
+    saveData(); openPanel('settingsPanel'); alert(`添加 ${lines.length} 个`);
+}
+function toggleMyPatDeleteMode() { deleteMode.myPat = !deleteMode.myPat; openPanel('settingsPanel'); }
+let myPatSelected = new Set();
+function toggleMyPatSelect(el, idx) {
+    const selector = el.querySelector('.myPat-selector');
+    if(!selector) return;
+    if(myPatSelected.has(idx)) { myPatSelected.delete(idx); selector.style.background = 'transparent'; selector.style.borderColor = '#999'; }
+    else { myPatSelected.add(idx); selector.style.background = '#ff3b30'; selector.style.borderColor = '#ff3b30'; }
+}
+function deleteSelectedMyPat() {
+    if(!myPatSelected.size) return alert('请至少选中一个');
+    const indices = [...myPatSelected].sort((a,b)=>b-a);
+    const arr = DATA.myPatCards;
+    indices.forEach(i => arr.splice(i,1));
+    myPatSelected.clear(); saveData(); openPanel('settingsPanel'); alert('删除成功');
+}
+function batchAddMyPat() {
+    const ta=document.getElementById('myPatBatchArea'); if(!ta) return;
+    const lines=ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(!lines.length) return alert('请输入至少一个动作');
+    DATA.myPatCards.push(...lines);
+    saveData(); openPanel('settingsPanel'); alert(`添加 ${lines.length} 个`);
+}
+function togglePartnerPatDeleteMode() { deleteMode.partnerPat = !deleteMode.partnerPat; openPanel('settingsPanel'); }
+let partnerPatSelected = new Set();
+function togglePartnerPatSelect(el, idx) {
+    const selector = el.querySelector('.partnerPat-selector');
+    if(!selector) return;
+    if(partnerPatSelected.has(idx)) { partnerPatSelected.delete(idx); selector.style.background = 'transparent'; selector.style.borderColor = '#999'; }
+    else { partnerPatSelected.add(idx); selector.style.background = '#ff3b30'; selector.style.borderColor = '#ff3b30'; }
+}
+function deleteSelectedPartnerPat() {
+    if(!partnerPatSelected.size) return alert('请至少选中一个');
+    const indices = [...partnerPatSelected].sort((a,b)=>b-a);
+    const arr = DATA.partnerPatCards;
+    indices.forEach(i => arr.splice(i,1));
+    partnerPatSelected.clear(); saveData(); openPanel('settingsPanel'); alert('删除成功');
+}
+function batchAddPartnerPat() {
+    const ta=document.getElementById('partnerPatBatchArea'); if(!ta) return;
+    const lines=ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(!lines.length) return alert('请输入至少一个动作');
+    DATA.partnerPatCards.push(...lines);
+    saveData(); openPanel('settingsPanel'); alert(`添加 ${lines.length} 个`);
+}
+function handleWordJsonImport(e) {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        try {
+            const json = JSON.parse(ev.target.result);
+            let count = 0;
+            if (typeof json === 'object' && !Array.isArray(json)) {
+                Object.keys(json).forEach(group => {
+                    if(Array.isArray(json[group])) {
+                        if(!DATA.aiWordGroups[group]) DATA.aiWordGroups[group] = [];
+                        const arr = json[group].filter(s => typeof s === 'string' && s.trim());
+                        DATA.aiWordGroups[group].push(...arr);
+                        count += arr.length;
+                    }
+                });
+            } else if (Array.isArray(json)) {
+                const defaultGroup = '导入字卡';
+                if(!DATA.aiWordGroups[defaultGroup]) DATA.aiWordGroups[defaultGroup] = [];
+                const arr = json.filter(s => typeof s === 'string' && s.trim());
+                DATA.aiWordGroups[defaultGroup].push(...arr);
+                count = arr.length;
+            } else { alert('JSON格式无效，请提供对象 {"分组名":["词条"]} 或数组 ["词条"]'); return; }
+            aiDeduplicate(); saveData(); openPanel('aiWordPanel'); alert(`成功导入 ${count} 个字卡`);
+        } catch(err) { alert('❌ JSON解析失败，请检查格式'); console.error(err); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+}
+function exportData() { const blob=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='CALEB_backup.json'; a.click(); URL.revokeObjectURL(blob.href); }
+function importData(e) {
+    const file=e.target.files[0]; if(!file) return; const reader=new FileReader();
+    reader.onload=ev=>{
+        try {
+            const imp=JSON.parse(ev.target.result);
+            Object.assign(DATA, imp);
+            if(!DATA.emojiGroups) DATA.emojiGroups={"emoji":["🥺","😋","😽","🥰","😈","🍏","🍎","💕","🐈","🐆","👌","😉","💤","😭","😍","😘","🙂‍↕️","🤏","😇","☺️","😘","😚","🥳","😎","🥵","🤬","😳","😢","🫣","🥶","🥱","😪","🤧","😴","😵‍💫","🤕","🤲🏻","🫶🏻","🙌🏻","👊🏻","👉🏻","🫳🏻","✌🏻","👂🏻","✍🏻","🦷","👀","🫂","🫀","👅","👄"]};
+            if(!DATA.aiWordGroups) DATA.aiWordGroups={};
+            if(!DATA.myPatCards) DATA.myPatCards=[];
+            if(!DATA.partnerPatCards) DATA.partnerPatCards=[];
+            if(!DATA.settings) DATA.settings={};
+            if(!DATA.settings.skin) DATA.settings.skin={top:'#ffffff',bottom:'#ffffff'};
+            if(!DATA.settings.statusCards) DATA.settings.statusCards=[];
+            if(!DATA.state) DATA.state={lastStatusUpdate:Date.now(), statusIndex:0};
+            const defaults={enableBackgroundKeep:false, enableMsgNotify:false, ignoreRate:0.1, quoteRate:0.25,
+                replyMinMinutes:1, replyMaxSeconds:30, replyCountMin:1, replyCountMax:3,
+                customGlobalCSS:'', customBubbleCSS:'', enableCombineCards:false, combineCardsCount:2,
+                enableActiveSend:false, activeSendMinMinutes:20, activeSendMaxMinutes:40,
+                statusChangeMinHours:3, statusChangeMaxHours:5,
+                enableAudioKeep:false };
+            Object.keys(defaults).forEach(k=>{ if(DATA.settings[k]===undefined) DATA.settings[k]=defaults[k]; });
+            DATA.messages.forEach(m=>{ if(!m.fullTime){ const now=getBeijingTime(); m.fullTime=formatFullTime(now); } });
+            saveData(); renderPartnerInfo(); renderMessages(false); applySkin(); toggleBackgroundKeep(); applyCustomCSS(); startActiveSendTimer(); 
+            if (DATA.settings.enableAudioKeep) toggleAudioKeep(true);
+            closePanel(); alert('✅ 导入成功');
+        } catch(err) { alert('❌ 文件格式错误'); console.error(err); }
+    };
+    reader.readAsText(file);
+    e.target.value='';
+}
+function requestNotificationPermission() { if(!window.Notification) return; if(Notification.permission==='granted'||Notification.permission==='denied') return; Notification.requestPermission(); }
+
+// ============================================================
+//  初始化
+// ============================================================
+loadData();
+renderPartnerInfo();
+renderMessages(false);
+applySkin();
+applyWallpaper();
+applyCustomCSS();
+toggleBackgroundKeep();
+startActiveSendTimer();
+if(DATA.settings.enableMsgNotify) requestNotificationPermission();
+
+// 音频保活自动开启
+if (DATA.settings.enableAudioKeep) {
+    setTimeout(() => {
+        toggleAudioKeep(true);
+    }, 1000);
+}
+
+document.getElementById('msgInput').addEventListener('keydown', function(e) {
+    if(e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSendClick();
+    }
+});
+window.addEventListener('resize', function() {
+    const input=document.getElementById('msgInput');
+    if(document.activeElement===input) setTimeout(()=>input.scrollIntoView({behavior:'smooth',block:'center'}), 200);
+});
+
+console.log('✅ CALEB 涂鸦/红包/特殊文字/音频保活版已就绪');
+</script>
+</body>
+</html>
